@@ -4,7 +4,8 @@ from models.booking_flow import (
     update_booking_state,
     summarize_booking
 )
-from utils.tools import booking_persistence_tool
+from utils.tools import booking_persistence_tool, email_tool
+
 
 BOOKING_KEYWORDS = [
     "book", "appointment", "schedule", "consult",
@@ -25,10 +26,26 @@ def handle_user_message(user_message, session_state):
             result = booking_persistence_tool(booking)
             if result["success"]:
                 booking_id = result["booking_id"]
+
+                email_result = email_tool(
+                    booking["email"],
+                    booking_id,
+                    booking
+                )
+
                 session_state.booking = None
-                return f"✅ Your appointment is confirmed!\n\n📌 **Booking ID:** {booking_id}"
-            else:
-                return "⚠️ Booking saved failed. Please try again later."
+
+                if email_result["success"]:
+                    return f"""✅ **Appointment Confirmed!**
+
+            📌 Booking ID: {booking_id}
+            📧 Confirmation email sent successfully."""
+                else:
+                    return f"""✅ **Appointment Confirmed!**
+
+            📌 Booking ID: {booking_id}
+            ⚠️ Email could not be sent, but booking was saved."""
+
         elif user_message.lower() in ["no", "n"]:
             session_state.booking = None
             return "❌ Booking cancelled. Let me know if you want to start again."
@@ -37,7 +54,10 @@ def handle_user_message(user_message, session_state):
 
     # Booking flow
     if detect_booking_intent(user_message) or any(value is not None for value in booking.values()):
-        update_booking_state(booking, user_message)
+        error = update_booking_state(booking, user_message)
+        if error:
+            return error
+
         next_q = get_next_question(booking)
         return next_q if next_q else summarize_booking(booking)
 
