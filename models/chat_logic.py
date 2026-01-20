@@ -16,52 +16,77 @@ def detect_booking_intent(user_message: str) -> bool:
     return any(keyword in user_message.lower() for keyword in BOOKING_KEYWORDS)
 
 def handle_user_message(user_message, session_state):
-    initialize_booking_state(session_state)
 
-    booking = session_state.booking
+    user_message_lower = user_message.lower()
 
-    # Confirmation step
-    if get_next_question(booking) is None:
-        if user_message.lower() in ["yes", "y"]:
-            result = booking_persistence_tool(booking)
-            if result["success"]:
-                booking_id = result["booking_id"]
+    # --------------------------------------------------
+    # Get booking if it exists
+    # --------------------------------------------------
+    booking = session_state.get("booking")
 
-                email_result = email_tool(
-                    booking["email"],
-                    booking_id,
-                    booking
-                )
+    # --------------------------------------------------
+    # CASE 1: Booking already in progress
+    # --------------------------------------------------
+    if booking is not None:
 
-                session_state.booking = None
+        # Confirmation stage
+        if get_next_question(booking) is None:
 
-                if email_result["success"]:
-                    return f"""✅ **Appointment Confirmed!**
+            if user_message_lower in ["yes", "y"]:
+                result = booking_persistence_tool(booking)
 
-            📌 Booking ID: {booking_id}
-            📧 Confirmation email sent successfully."""
-                else:
-                    return f"""✅ **Appointment Confirmed!**
+                if result["success"]:
+                    booking_id = result["booking_id"]
 
-            📌 Booking ID: {booking_id}
-            ⚠️ Email could not be sent, but booking was saved."""
+                    email_result = email_tool(
+                        booking["email"],
+                        booking_id,
+                        booking
+                    )
 
-        elif user_message.lower() in ["no", "n"]:
-            session_state.booking = None
-            return "❌ Booking cancelled. Let me know if you want to start again."
+                    session_state.pop("booking")
 
-        return summarize_booking(booking)
+                    if email_result["success"]:
+                        return f"""✅ **Appointment Confirmed!**
 
-    # Booking flow
-    if detect_booking_intent(user_message) or any(value is not None for value in booking.values()):
+📌 Booking ID: {booking_id}
+📧 Confirmation email sent successfully."""
+                    else:
+                        return f"""✅ **Appointment Confirmed!**
+
+📌 Booking ID: {booking_id}
+⚠️ Email could not be sent, but booking was saved."""
+
+                return "❌ Booking failed. Please try again later."
+
+            elif user_message_lower in ["no", "n"]:
+                session_state.pop("booking")
+                return "❌ Booking cancelled. Let me know if you want to start again."
+
+            return "Please reply with **Yes** or **No** to confirm your booking."
+
+        # Slot filling
         error = update_booking_state(booking, user_message)
         if error:
             return error
 
-        next_q = get_next_question(booking)
-        return next_q if next_q else summarize_booking(booking)
+        next_question = get_next_question(booking)
+        if next_question:
+            return next_question
 
+        return summarize_booking(booking)
+
+    # --------------------------------------------------
+    # CASE 2: Start new booking
+    # --------------------------------------------------
+    if detect_booking_intent(user_message):
+        initialize_booking_state(session_state)
+        return "May I know your full name?"
+
+    # --------------------------------------------------
+    # CASE 3: Default response
+    # --------------------------------------------------
     return (
-        "I can answer clinic-related questions or help you book an appointment 🩺.\n"
-        "Just say *book an appointment* to begin."
+        "I can help you book an appointment or answer clinic-related questions.\n\n"
+        "You can say **book an appointment** to get started."
     )
