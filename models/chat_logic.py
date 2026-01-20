@@ -1,4 +1,9 @@
-import re
+from models.booking_flow import (
+    initialize_booking_state,
+    get_next_question,
+    update_booking_state,
+    summarize_booking
+)
 
 BOOKING_KEYWORDS = [
     "book", "appointment", "schedule", "consult",
@@ -6,20 +11,31 @@ BOOKING_KEYWORDS = [
 ]
 
 def detect_booking_intent(user_message: str) -> bool:
-    message = user_message.lower()
-    return any(keyword in message for keyword in BOOKING_KEYWORDS)
+    return any(keyword in user_message.lower() for keyword in BOOKING_KEYWORDS)
 
-def handle_user_message(user_message, chat_history):
-    # Limit memory to last 25 messages
-    chat_history = chat_history[-25:]
+def handle_user_message(user_message, session_state):
+    initialize_booking_state(session_state)
 
-    if detect_booking_intent(user_message):
-        return (
-            "I can help you book a doctor appointment 🩺.\n\n"
-            "To get started, may I know your **full name**?"
-        )
+    booking = session_state.booking
+
+    # Confirmation step
+    if get_next_question(booking) is None:
+        if user_message.lower() in ["yes", "y"]:
+            booking["confirmed"] = True
+            return "✅ Thank you! Your appointment will be booked shortly."
+        elif user_message.lower() in ["no", "n"]:
+            session_state.booking = None
+            return "❌ Booking cancelled. Let me know if you want to start again."
+
+        return summarize_booking(booking)
+
+    # Booking flow
+    if detect_booking_intent(user_message) or any(value is not None for value in booking.values()):
+        update_booking_state(booking, user_message)
+        next_q = get_next_question(booking)
+        return next_q if next_q else summarize_booking(booking)
 
     return (
-        "I can answer questions about the clinic or help you book an appointment.\n\n"
-        "You may upload clinic PDFs and ask questions, or say *book an appointment*."
+        "I can answer clinic-related questions or help you book an appointment 🩺.\n"
+        "Just say *book an appointment* to begin."
     )

@@ -24,7 +24,7 @@ if user_input:
         st.markdown(user_input)
 
     # Get bot response
-    response = handle_user_message(user_input, st.session_state.messages)
+    response = handle_user_message(user_input, st.session_state)
 
     # Store bot message
     st.session_state.messages.append({"role": "assistant", "content": response})
