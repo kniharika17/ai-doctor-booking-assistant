@@ -1,3 +1,8 @@
+from utils.database import init_db
+
+init_db()
+
+
 import streamlit as st
 from models.chat_logic import handle_user_message
 

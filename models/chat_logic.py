@@ -4,6 +4,7 @@ from models.booking_flow import (
     update_booking_state,
     summarize_booking
 )
+from utils.tools import booking_persistence_tool
 
 BOOKING_KEYWORDS = [
     "book", "appointment", "schedule", "consult",
@@ -21,8 +22,13 @@ def handle_user_message(user_message, session_state):
     # Confirmation step
     if get_next_question(booking) is None:
         if user_message.lower() in ["yes", "y"]:
-            booking["confirmed"] = True
-            return "✅ Thank you! Your appointment will be booked shortly."
+            result = booking_persistence_tool(booking)
+            if result["success"]:
+                booking_id = result["booking_id"]
+                session_state.booking = None
+                return f"✅ Your appointment is confirmed!\n\n📌 **Booking ID:** {booking_id}"
+            else:
+                return "⚠️ Booking saved failed. Please try again later."
         elif user_message.lower() in ["no", "n"]:
             session_state.booking = None
             return "❌ Booking cancelled. Let me know if you want to start again."
