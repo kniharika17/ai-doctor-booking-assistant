@@ -13,7 +13,7 @@ st.set_page_config(
 init_db()
 
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Chatbot", "Admin Dashboard"])
+#page = st.sidebar.radio("Go to", ["Chatbot", "Admin Dashboard"])
 
 # -------- PDF Upload --------
 st.sidebar.subheader("📄 Upload PDFs")
@@ -72,5 +72,5 @@ if page == "Chatbot":
         with st.chat_message("assistant"):
             st.markdown(response)
 
-elif page == "Admin Dashboard":
-    import admin_dashboard
+#elif page == "Admin Dashboard":
+#    import pages.admin_dashboard as admin_dashboard
