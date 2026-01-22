@@ -8,3 +8,7 @@ pypdf
 tiktoken
 python-dotenv
 sqlite-utils
+langchain-huggingface
+langchain-core
+langchain-text-splitters
+sentence-transformers

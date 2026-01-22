@@ -3,3 +3,9 @@ __pycache__/
 .env
 .streamlit/secrets.toml
 *.db
+
+# Generated / runtime data
+uploaded_pdfs/
+vectorstore/
+*.faiss
+*.pkl
