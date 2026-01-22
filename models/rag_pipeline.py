@@ -28,8 +28,10 @@ def load_and_process_pdfs(pdf_files):
     chunks = splitter.split_documents(documents)
 
     embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
+        model_name="sentence-transformers/all-MiniLM-L6-v2",
+        model_kwargs={"device": "cpu"}
     )
+
 
     vectorstore = FAISS.from_documents(chunks, embeddings)
 
@@ -45,8 +47,10 @@ def load_and_process_pdfs(pdf_files):
 def load_existing_vectorstore():
     if os.path.exists(VECTORSTORE_PATH):
         embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2"
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_kwargs={"device": "cpu"}
         )
+
         return FAISS.load_local(
             VECTORSTORE_PATH,
             embeddings,
